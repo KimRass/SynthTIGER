@@ -6,6 +6,8 @@ img = db["image"]["hiking_125.jpg"][:]
 depth_map = db["depth"]["hiking_125.jpg"][:].T
 seg_map = db["seg"]["hiking_125.jpg"][:]
 
-plt.imshow(seg_map)
+show_image(img)
+show_image(seg_map)
+
+plt.imshow(depth_map)
 plt.show()
-# show_image(img)
