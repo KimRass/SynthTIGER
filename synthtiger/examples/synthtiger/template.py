@@ -5,7 +5,6 @@ MIT license
 """
 
 import os
-
 import cv2
 import numpy as np
 from PIL import Image
@@ -46,10 +45,7 @@ class SynthTiger(templates.Template):
         )
         self.foreground_mask_pad = config.get("foreground_mask_pad", 0)
         self.corpus = components.Selector(
-            [
-                components.LengthAugmentableCorpus(),
-                components.CharAugmentableCorpus(),
-            ],
+            [components.LengthAugmentableCorpus(), components.CharAugmentableCorpus()],
             **config.get("corpus", {}),
         )
         self.font = components.BaseFont(**config.get("font", {}))
@@ -60,9 +56,7 @@ class SynthTiger(templates.Template):
         self.colormap3 = components.GrayMap(**config.get("colormap3", {}))
         self.color = components.Gray(**config.get("color", {}))
         self.shape = components.Switch(
-            components.Selector(
-                [components.ElasticDistortion(), components.ElasticDistortion()]
-            ),
+            components.Selector([components.ElasticDistortion(), components.ElasticDistortion()]),
             **config.get("shape", {}),
         )
         self.layout = components.Selector(
@@ -111,12 +105,12 @@ class SynthTiger(templates.Template):
         fg_color, fg_style, mg_color, mg_style, bg_color = self._generate_color()
 
         fg_image, label, bboxes, glyph_fg_image, glyph_bboxes = self._generate_text(
-            fg_color, fg_style
+            color=fg_color, style=fg_style
         )
-        bg_image = self._generate_background(fg_image.shape[:2][::-1], bg_color)
+        bg_image = self._generate_background(size=fg_image.shape[: 2][:: -1], color=bg_color)
 
         if midground:
-            mg_image, _, _, _, _ = self._generate_text(mg_color, mg_style)
+            mg_image, _, _, _, _ = self._generate_text(color=mg_color, style=mg_style)
             mg_image = self._erase_image(mg_image, fg_image)
             bg_image = _blend_images(mg_image, bg_image, self.visibility_check)
 
@@ -250,7 +244,6 @@ class SynthTiger(templates.Template):
 
         glyph_out = text_glyph_layer.output(bbox=text_layer.bbox)
         glyph_bboxes = [char_glyph_layer.bbox for char_glyph_layer in char_glyph_layers]
-
         return out, label, bboxes, glyph_out, glyph_bboxes
 
     def _generate_background(self, size, color):
@@ -314,7 +307,7 @@ def _check_visibility(image, mask):
             if peak[y][x]:
                 cv2.floodFill(gray, visit, (x, y), 1, 16, 16, flag)
 
-    visit = visit[1:-1, 1:-1]
+    visit = visit[1: -1, 1: -1]
     count = np.sum(visit & border)
     total = np.sum(border)
     return total > 0 and count <= total * 0.1
