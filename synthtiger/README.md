@@ -18,6 +18,125 @@
     - SynthTIGER renders a target text and a noisy text and combines them to reflect the realness of the text regions (in a wild, a part of a word appearance can be included in a region for another word).SynthTIGER engine consists of five procedures: '(a)' text shape selection, '(b)' text style selection, '(c)' transformation, '(d)' blending, and '(e)' postprocessing. ***The first three processes, '(a)', '(b)', and '(c)', are separately applied to the foreground layer for a target text and the mid-ground layer for a noise text.*** In the '(d)' step, the two layers are combined with a background to represent a single synthesized image. Finally, the '(e)' adds realistic noises.
     - '(a)' Text Shape Selection: Text shape selection decides a 2-dimensional shape of a 1-dimensional character sequence. This process first identify individual character shapes of a target text $t$ and then renders them upon a certain line on 2D space in the left-to-right order. To reveal visual appearances of the characters, ***a font is randomly selected from a pool of font styles*** $F$ ***and each character is rendered upon individual boards with randomly chosen font size and thickness. To add diversity of font styles, elastic distortion [20] is applied to the rendered characters.***
     - Defining a spatial order of characters is essential to map characters upon 2-dimensional space. ***For straight texts, SynthTIGER basically aligns character boards in the left-to-right order with a certain margin between the boards. For curved texts, SynthTIGER places the character boards on a parabolic curve. The curvature of the curve is identified by the maximum height-directional gaps between the centers of the boards. The maximum gap is randomly chosen and the middle points of the target text are allocated on the centroid of the parabolic curve. The character boards upon the curve are rotated with a slope of the curve under a certain probability.***
+
+- (b) Text Style Selection This part chooses colors and textures of a text, and
+injects additional text effects such as bordering, shadowing and extruding texts.
+A color map C is an estimation of a real distribution over colors of text
+images. It can be identified by clustering colors of real text images. It usually
+consists of 2, or 3 clusters with the mean gray-scale colors and their standard
+deviation (s.t.d). MJ and ST also utilize this color map identified from ICDAR03
+dataset [13] and IIIT dataset [14], respectively. In our work, we adapt to the color map used in ST. The color selection from the color map is conducted sequentially
+in an order of a cluster and a color based on the mean and the s.t.d. Once a
+color is selected, SynthTIGER changes the color of the character appearances.
+The colors of texts in the real world is not simply represented with a single
+color. SynthTIGER uses multiple texture sources, B, to reflect the realness of
+text colors. Specifically, it picks up a random texture from B, performs a random
+crop of the texture, and use it as a texture of the text appearance of the synthetic
+image. In this process, transparency of the texture is also randomly chosen to
+diversify the effect of textures.
+In the real world, the characters’ boundary exhibits diverse patterns depend-
+ing on text styles, text background, and environmental conditions. We can simu-
+late the boundary styles by applying text border, shadow, and extruding effects.
+SynthTIGER randomly chooses one of these effects and applies it to the text.
+All required parameters such as effect size and color will be sampled randomly
+from a pre-defined range.
+
+Transformation
+In detail, SynthTIGER provides stretch, trapezoidate, skew and rotate trans-
+formations. Their functions are explained below.
+– Stretch adjusts the width or height of the text images.
+– Trapezoidate choose an edge of the text image and then adjust its length.
+– Skew tilts the text image to one of the four directions such as the right, left,
+top and bottom.
+– Rotate turns the text image clockwise or anticlockwise.
+SynthTIGER applies one of these transformations to the text image with neces-
+sary parameter values randomly sampled.
+random margins
+Finally, SynthTIGER adds random margins to simulate the diverse results of
+text detectors. The margins are independently applied to the top, bottom, left,
+and right of the image. 
+
+- (d) Blending
+- The blending process first creates a background image by randomly sampling color and texture from the colormap C, and the texture database B. It randomly changes the transparency of the background texture to diversify the impact of the background. Secondly, it creates two text images, foreground and mid-ground, with the same rendering processes but different random parameters. ***Foreground contains a target text and mid-ground one carries a noise text. The next step is to combine the mid-ground and background images.*** The blending process first crops the background image to match the text image size. Then, it randomly shifts the noise text in the mid-ground and makes the non-textual area transparent. Finally, ***it merges two images by using one of multiple blending methods: normal, multiply, screen, overlay, hard-light, soft-light, dodge, divide, addition, difference, darken-only, and lighten-only. The last step is to overlay the foreground text image on the merged background.*** The target text area with a little margin is kept non-transparent to distinguish between the target text and the noise text. During this process, it also uses one of the blending methods aforementioned.
+- Visibility
+    - A synthesized image created through these steps from (a) to (d) might not be a good text-focused image for several reasons. For example, ***its text and background color happen to be indistinguishable because they are chosen independently. To address this problem, we adopted Flood-Fill algorithm. We apply this algorithm starting from a pixel inside the target text, count the number of text boundary pixels visited, and calculate the ratio of the visited text boundary pixels to the number of all boundary pixels. This process is repeated until all target text pixels are used. If this ratio exceeds a certain threshold, we conclude that the target text and background are indistinguishable and discard the generated image.***
+(e) Post-processing
+    - ***In this process, SynthTIGER injects general visual noises such as gaussian noise, gaussian blur, resize, median blur and JPEG compression.***
+
+The previous methods, MJ and ST, randomly sample target texts from a user-
+provided lexicon. In contrast, SynthTIGER provides two additional strategies to
+control the text length distribution and character distribution of a synthesized
+dataset. It alleviates the long-tail problem inherited from the use of a lexicon.
+Text Length Distribution Control The length distribution of texts ran-
+domly sampled from a lexicon does not represent the true distribution of a real
+world text data. To alleviate this problem, SynthTIGER performs text length
+distribution augmentation with the probability pl.d. where l.d. stands for length
+distribution. The augmentation process first randomly chooses the target text
+length between 1 and the pre-defined maximum value. Then, it randomly sam-
+ples a word from the lexicon. If the word matches the target length, SynthTIGER
+uses it as a target text. For longer words, it simply cuts off extra rightmost char-
+acters. For shorter words, it samples a new word and attaches it to the right
+of the previous one until the concatenated word matches or exceeds the target
+length. The rightmost extra characters will be cut off. Text length augmentation,
+however, should be used with caution because the generated texts are mostly
+nonsensical 
+
+Character Distribution Control Languages such as Chinese and Japanese
+use a large number of characters. A synthesized dataset for such a language often
+lacks enough amount of samples for rare characters. To deal with this problem,
+SynthTIGER conducts character distribution augmentation with the probabil-
+ity pc.d where c.d. stands for character distribution. When the augmentation is
+triggered, it randomly chooses a character from vocabulary and samples a word
+having that character. In the experiments, we show that character distribution
+augmentation with pc.d. between 0.25 and 0.5 improves STR performance for
+both scene and document domains. 
+
+Experimental Settings for Training and Evaluating STR Models In
+this paper, we evaluate synthetic dataset by training a STR model with them
+and evaluating the trained model on real STR examples. We choose BEST [1] as
+our base model since it is generally used as well as its implementation is publicly
+available. All synthetic datasets built for our experiments consists of 10M word
+box images. The public datasets, MJ and ST, contains 8.9M and 7M word box
+images respectively and they are also evaluated with the same process.
+The BEST model are trained only with synthetic datasets. The training and
+evaluation is conducted with the STR test-bed6
+. Most of experimental settings
+follows the training protocol of Baek et al. [1] except for the input image size of
+32 by 256.
+The evaluation protocol is also the same with [1]. Specifically, we test two
+STR scenario depending on languages: one is Latin and the other is Japanese.
+For the Latin case, character vocabulary consists of 94 including both alphanu-
+meric and special characters. STR models are evaluated on test-sets of STR
+benchmarks; 3,000 images of IIIT5k [14], 647 images of SVT [21], 1,110 images
+of IC03 [13], 1,095 images of IC13 [7], 2,077 images of IC15 [6], 645 images
+of SVTP [17], and 288 images of CUTE80 [18]. We also test performances on
+business documents with our in-house 38,493 images. We only evaluate on alpha-
+bets and digits due to in-consistent labels of the benchmark datasets. For the
+Japanese case, the vocabulary consists of 6,723 characters including alphanu-
+meric, special, hiragana/katakana, and some Chinese characters. The evaluation
+is conducted on our in-house datasets; 40,938 images of scenes and 38,059 images
+of Japanese business documents. 
+
+Comparison on Synthetic Text Data
+the
+combination of MJ and ST shows better performances than their single usages.
+Table 2. Benchmark performances of BEST [1] trained from synthetic text images.
+The amount of MJ, ST, MJ+ST, our data are 8.9M, 7M, 15.9M, and 10M, respectively. 
+
+SynthTIGER always provides a better STR performance than the single usages
+of MJ and ST. Interestingly, ours achieves comparable or better performance
+than combined data (MJ+ST). It should be noted that the amount of combined
+training data is 1.5 times larger than ours.
+4.3 Comparison on Synthetic Text Image Generators with Same
+Resources
+Since the outputs of the engines depend on the resources such as fonts, textures,
+color maps, and a lexicon, we provide fair comparisons, referred as to ‘*’, by
+setting the same resources in Table 3. To present a fair comparison, we set the
+total amount of comparison data as 10M. For example, the total amount of
+MJ*+ST* is 10M and other comparisons such as MJ*, ST*, and Ours* are also
+10M. In Table 3, ours shows clear improvement from single usages of MJ* and
+ST*. Also, ours have comparable performance with combined datasets.
+
 ## References
 - [1] [What Is Wrong With Scene Text Recognition Model Comparisons? Dataset and Model Analysis](https://arxiv.org/pdf/1904.01906.pdf)
 - [2] [Synthetic Data for Text Localisation in Natural Images](https://arxiv.org/pdf/1604.06646.pdf)

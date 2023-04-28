@@ -33,13 +33,15 @@ def run(args):
     if args.output is not None:
         template.init_save(args.output)
 
-    for idx, (task_idx, data) in enumerate(generator):
-        if args.output is not None:
-            template.save(args.output, data, task_idx)
-        print(f"Generated {idx + 1} data (task {task_idx})")
+    # for idx, (task_idx, data) in enumerate(generator):
+    for task_idx, data in generator:
+        if args.output is not None and data is not None:
+            template.save(root=args.output, data=data, idx=task_idx)
+            print(f"""Generated data; '{task_idx}.jpg'""")
 
     if args.output is not None:
-        template.end_save(args.output)
+        # template.end_save(args.output)
+        template.end_save()
 
 
 def parse_args():

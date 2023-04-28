@@ -40,18 +40,14 @@ class SynthTiger(templates.Template):
         self.quality = config.get("quality", [95, 95])
         self.visibility_check = config.get("visibility_check", False)
         self.midground = config.get("midground", 0)
-        self.midground_offset = components.Translate(
-            **config.get("midground_offset", {})
-        )
+        self.midground_offset = components.Translate(**config.get("midground_offset", {}))
         self.foreground_mask_pad = config.get("foreground_mask_pad", 0)
         self.corpus = components.Selector(
             [components.LengthAugmentableCorpus(), components.CharAugmentableCorpus()],
             **config.get("corpus", {}),
         )
         self.font = components.BaseFont(**config.get("font", {}))
-        self.texture = components.Switch(
-            components.BaseTexture(), **config.get("texture", {})
-        )
+        self.texture = components.Switch(components.BaseTexture(), **config.get("texture", {}))
         self.colormap2 = components.GrayMap(**config.get("colormap2", {}))
         self.colormap3 = components.GrayMap(**config.get("colormap3", {}))
         self.color = components.Gray(**config.get("color", {}))
@@ -111,25 +107,24 @@ class SynthTiger(templates.Template):
 
         if midground:
             mg_image, _, _, _, _ = self._generate_text(color=mg_color, style=mg_style)
-            mg_image = self._erase_image(mg_image, fg_image)
-            bg_image = _blend_images(mg_image, bg_image, self.visibility_check)
+            mg_image = self._erase_image(image=mg_image, mask=fg_image)
+            bg_image = _blend_images(src=mg_image, dst=bg_image, visibility_check=self.visibility_check)
 
-        image = _blend_images(fg_image, bg_image, self.visibility_check)
-        image, fg_image, glyph_fg_image = self._postprocess_images(
-            [image, fg_image, glyph_fg_image]
-        )
+        if bg_image is not None:
+            image = _blend_images(src=fg_image, dst=bg_image, visibility_check=self.visibility_check)
+            if image is not None:
+                image, fg_image, glyph_fg_image = self._postprocess_images([image, fg_image, glyph_fg_image])
 
-        data = {
-            "image": image,
-            "label": label,
-            "quality": quality,
-            "mask": fg_image[..., 3],
-            "bboxes": bboxes,
-            "glyph_mask": glyph_fg_image[..., 3],
-            "glyph_bboxes": glyph_bboxes,
-        }
-
-        return data
+                data = {
+                    "image": image,
+                    "label": label,
+                    "quality": quality,
+                    "mask": fg_image[..., 3],
+                    "bboxes": bboxes,
+                    "glyph_mask": glyph_fg_image[..., 3],
+                    "glyph_bboxes": glyph_bboxes,
+                }
+                return data
 
     def init_save(self, root):
         os.makedirs(root, exist_ok=True)
@@ -187,7 +182,7 @@ class SynthTiger(templates.Template):
         if self.glyph_coord_output:
             self.glyph_coords_file.write(f"{image_key}\t{glyph_coords}\n")
 
-    def end_save(self, root):
+    def end_save(self):
         self.gt_file.close()
         if self.coord_output:
             self.coords_file.close()
@@ -269,21 +264,8 @@ class SynthTiger(templates.Template):
         return outs
 
 
-def _blend_images(src, dst, visibility_check=False):
-    blend_modes = np.random.permutation(BLEND_MODES)
-
-    for blend_mode in blend_modes:
-        out = utils.blend_image(src, dst, mode=blend_mode)
-        if not visibility_check or _check_visibility(out, src[..., 3]):
-            break
-    else:
-        raise RuntimeError("Text is not visible")
-
-    return out
-
-
-def _check_visibility(image, mask):
-    gray = utils.to_gray(image[..., :3]).astype(np.uint8)
+def _check_if_visible(image, mask):
+    gray = utils.to_gray(image[..., : 3]).astype(np.uint8)
     mask = mask.astype(np.uint8)
     height, width = mask.shape
 
@@ -310,7 +292,14 @@ def _check_visibility(image, mask):
     visit = visit[1: -1, 1: -1]
     count = np.sum(visit & border)
     total = np.sum(border)
-    return total > 0 and count <= total * 0.1
+    return total > 0 and count / total <= 0.01
+
+
+def _blend_images(src, dst, visibility_check=False):
+    for mode in np.random.permutation(BLEND_MODES):
+        out = utils.blend_image(src, dst, mode=mode)
+        if not visibility_check or _check_if_visible(out, src[..., 3]):
+            return out
 
 
 def _create_poly_mask(image, pad=0):

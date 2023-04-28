@@ -6,5 +6,5 @@ python3 synthtiger/main.py\
     --output="/Users/jongbeomkim/Documents/synthtiger"\
     --count=50\
     --n_workers=4\
-    --seed=77\
+    --seed=743\
     --verbose\

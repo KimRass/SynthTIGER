@@ -95,7 +95,7 @@ style:
   args:
     weights: [1, 2, 2]
     args:
-      # text border
+      # Text border
       - size: [1, 12]
         alpha: [1, 1]
         grayscale: 0
@@ -146,22 +146,23 @@ pad:
   args:
     pxs: [[0, 10], [0, 10], [0, 10], [0, 10]]
 
+### (e)
 postprocess:
   args:
-    # gaussian noise
+    # Gaussian noise
     - prob: 1
       args:
         scale: [4, 8]
         per_channel: 0
-    # gaussian blur
+    # Gaussian blur
     - prob: 0.9
       args:
         sigma: [0, 2]
-    # resample
+    # Resize
     - prob: 0.1
       args:
         size: [0.4, 0.4]
-    # median blur
+    # Median blur
     - prob: 1
       args:
         k: [1, 1]
