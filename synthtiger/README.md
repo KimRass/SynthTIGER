@@ -15,31 +15,30 @@
 ## Methodology
 - SynthTIGER consists of two major components: text selection and text rendering modules. The text selection module is used to sample a target text, t, from a pre-defined lexicon, L. Then, the text rendering module generates a text image by using multiple fonts F, backgrounds (textures) B, and a color map C.
 - Figure 2
+    - <img src="https://user-images.githubusercontent.com/67457712/235563806-e772daa4-aab5-404b-afbd-059ea225c245.png" width="600">
     - SynthTIGER renders a target text and a noisy text and combines them to reflect the realness of the text regions (in a wild, a part of a word appearance can be included in a region for another word).SynthTIGER engine consists of five procedures: '(a)' text shape selection, '(b)' text style selection, '(c)' transformation, '(d)' blending, and '(e)' postprocessing. ***The first three processes, '(a)', '(b)', and '(c)', are separately applied to the foreground layer for a target text and the mid-ground layer for a noise text.*** In the '(d)' step, the two layers are combined with a background to represent a single synthesized image. Finally, the '(e)' adds realistic noises.
     - '(a)' Text Shape Selection: Text shape selection decides a 2-dimensional shape of a 1-dimensional character sequence. This process first identify individual character shapes of a target text $t$ and then renders them upon a certain line on 2D space in the left-to-right order. To reveal visual appearances of the characters, ***a font is randomly selected from a pool of font styles*** $F$ ***and each character is rendered upon individual boards with randomly chosen font size and thickness. To add diversity of font styles, elastic distortion [20] is applied to the rendered characters.***
     - Defining a spatial order of characters is essential to map characters upon 2-dimensional space. ***For straight texts, SynthTIGER basically aligns character boards in the left-to-right order with a certain margin between the boards. For curved texts, SynthTIGER places the character boards on a parabolic curve. The curvature of the curve is identified by the maximum height-directional gaps between the centers of the boards. The maximum gap is randomly chosen and the middle points of the target text are allocated on the centroid of the parabolic curve. The character boards upon the curve are rotated with a slope of the curve under a certain probability.***
+    - '(b)' Text Style Selection:
+        - Text color
+            - ***A color map*** $C$ ***is an estimation of a real distribution over colors of text images. It can be identified by clustering colors of real text images. It usually consists of 2, or 3 clusters with the mean gray-scale colors and their standard deviation (s.t.d).***
+            - In our work, ***we adapt to the color map used in ST. The color selection from the color map is conducted sequentially in an order of a cluster and a color based on the mean and the s.t.d. Once a color is selected, SynthTIGER changes the color of the character appearances. The colors of texts in the real world is not simply represented with a single color. SynthTIGER uses multiple texture sources,*** $B$ ***, to reflect the realness of text colors.***
+        - Text texture
+            - ***Specifically, it picks up a random texture from*** $B$ ***, performs a random crop of the texture, and use it as a texture of the text appearance of the synthetic image. In this process, transparency of the texture is also randomly chosen to diversify the effect of textures.**
+        - Text boundary style
+            - In the real world, the characters’ boundary exhibits diverse patterns depending on text styles, text background, and environmental conditions. ***We can simulate the boundary styles by applying text border, shadow, and extruding effects. SynthTIGER randomly chooses one of these effects and applies it to the text. All required parameters such as effect size and color will be sampled randomly from a pre-defined range.***
+    - '(d)' Blending:
+        - ***The blending process first creates a background image by randomly sampling color and texture from the colormap*** $C$ ***, and the texture database*** $B$ ***. It randomly changes the transparency of the background texture to diversify the impact of the background. Secondly, it creates two text images, foreground and mid-ground, with the same rendering processes but different random parameters. Foreground contains a target text and mid-ground one carries a noise text. The next step is to combine the mid-ground and background images.*** The blending process first crops the background image to match the text image size. Then, it randomly shifts the noise text in the mid-ground and makes the non-textual area transparent. Finally, ***it merges two images by using one of multiple blending methods: normal, multiply, screen, overlay, hard-light, soft-light, dodge, divide, addition, difference, darken-only, and lighten-only. The last step is to overlay the foreground text image on the merged background.*** The target text area with a little margin is kept non-transparent to distinguish between the target text and the noise text. During this process, it also uses one of the blending methods aforementioned.
+<!-- - Table 3
+    - Resources
+        - Since the outputs of the engines depend on the resources such as fonts, textures, color maps, and a lexicon, we provide fair comparisons, referred as to ""*", by setting the same resources in Table 3. To present a fair comparison, we set the total amount of comparison data as 10M. For example, the total amount of MJ*+ST* is 10M and other comparisons such as MJ*, ST*, and Ours* are also 10M. In Table 3, ours shows clear improvement from single usages of MJ* and ST*. Also, ours have comparable performance with combined datasets. -->
+- Resources
+    - Table 1
+        - Table 1 describes the resources used in MJ and ST as well as in our experiments. As can be seen, MJ and ST are built with their own resources. MJ utilizes a lexicon combining Hunspell corpus4 and ground-truths of real STR examples from ICDAR(IC), SVT, and IIIT datasets. MJ also uses textures and its color map of IC03 and SVT.
+        - ST: In contrast, ST does not use the ground-truth information except for the color map from IIIT.
+        - SynthTIGER: SynthTIGER utilizes a lexicon consisting of texts of MJ and ST dataset and uses the same textures and color map with ST.
+        - "Common*" in the table uses an another lexicon from Wikipedia to evaluate all synthesis engines without ground-truth information of real STR test examples and test sets except for the color map.
 
-- (b) Text Style Selection This part chooses colors and textures of a text, and
-injects additional text effects such as bordering, shadowing and extruding texts.
-A color map C is an estimation of a real distribution over colors of text
-images. It can be identified by clustering colors of real text images. It usually
-consists of 2, or 3 clusters with the mean gray-scale colors and their standard
-deviation (s.t.d). MJ and ST also utilize this color map identified from ICDAR03
-dataset [13] and IIIT dataset [14], respectively. In our work, we adapt to the color map used in ST. The color selection from the color map is conducted sequentially
-in an order of a cluster and a color based on the mean and the s.t.d. Once a
-color is selected, SynthTIGER changes the color of the character appearances.
-The colors of texts in the real world is not simply represented with a single
-color. SynthTIGER uses multiple texture sources, B, to reflect the realness of
-text colors. Specifically, it picks up a random texture from B, performs a random
-crop of the texture, and use it as a texture of the text appearance of the synthetic
-image. In this process, transparency of the texture is also randomly chosen to
-diversify the effect of textures.
-In the real world, the characters’ boundary exhibits diverse patterns depend-
-ing on text styles, text background, and environmental conditions. We can simu-
-late the boundary styles by applying text border, shadow, and extruding effects.
-SynthTIGER randomly chooses one of these effects and applies it to the text.
-All required parameters such as effect size and color will be sampled randomly
-from a pre-defined range.
 
 Transformation
 In detail, SynthTIGER provides stretch, trapezoidate, skew and rotate trans-
@@ -56,8 +55,6 @@ Finally, SynthTIGER adds random margins to simulate the diverse results of
 text detectors. The margins are independently applied to the top, bottom, left,
 and right of the image. 
 
-- (d) Blending
-- The blending process first creates a background image by randomly sampling color and texture from the colormap C, and the texture database B. It randomly changes the transparency of the background texture to diversify the impact of the background. Secondly, it creates two text images, foreground and mid-ground, with the same rendering processes but different random parameters. ***Foreground contains a target text and mid-ground one carries a noise text. The next step is to combine the mid-ground and background images.*** The blending process first crops the background image to match the text image size. Then, it randomly shifts the noise text in the mid-ground and makes the non-textual area transparent. Finally, ***it merges two images by using one of multiple blending methods: normal, multiply, screen, overlay, hard-light, soft-light, dodge, divide, addition, difference, darken-only, and lighten-only. The last step is to overlay the foreground text image on the merged background.*** The target text area with a little margin is kept non-transparent to distinguish between the target text and the noise text. During this process, it also uses one of the blending methods aforementioned.
 - Visibility
     - A synthesized image created through these steps from (a) to (d) might not be a good text-focused image for several reasons. For example, ***its text and background color happen to be indistinguishable because they are chosen independently. To address this problem, we adopted Flood-Fill algorithm. We apply this algorithm starting from a pixel inside the target text, count the number of text boundary pixels visited, and calculate the ratio of the visited text boundary pixels to the number of all boundary pixels. This process is repeated until all target text pixels are used. If this ratio exceeds a certain threshold, we conclude that the target text and background are indistinguishable and discard the generated image.***
 (e) Post-processing
@@ -128,14 +125,6 @@ of MJ and ST. Interestingly, ours achieves comparable or better performance
 than combined data (MJ+ST). It should be noted that the amount of combined
 training data is 1.5 times larger than ours.
 4.3 Comparison on Synthetic Text Image Generators with Same
-Resources
-Since the outputs of the engines depend on the resources such as fonts, textures,
-color maps, and a lexicon, we provide fair comparisons, referred as to ‘*’, by
-setting the same resources in Table 3. To present a fair comparison, we set the
-total amount of comparison data as 10M. For example, the total amount of
-MJ*+ST* is 10M and other comparisons such as MJ*, ST*, and Ours* are also
-10M. In Table 3, ours shows clear improvement from single usages of MJ* and
-ST*. Also, ours have comparable performance with combined datasets.
 
 ## References
 - [1] [What Is Wrong With Scene Text Recognition Model Comparisons? Dataset and Model Analysis](https://arxiv.org/pdf/1904.01906.pdf)
@@ -146,3 +135,27 @@ ST*. Also, ours have comparable performance with combined datasets.
 
 # Official Repository
 - https://github.com/clovaai/synthtiger
+## Configuration
+- `weights`: 예를 들어 `[1, 3, 2]`라고 하면 각 확률은 [`1 / 6, 3 / 6, 2 / 6]`이 됩니다. 이 확률 분포를 가지고 각 확률에 해당하는 요소를 샘플링합니다.
+## Template
+- 템플릿 클래스의 `init_save()`: 생성된 데이터를 저장하기 위한 환경 설정
+## Font (`font`):
+- `size`:
+- `bold`: 볼드 적용 확률
+## Color (`colormap2`, `colormap3`)
+- "/resources/colormap/iiit5k_gray.txt" 파일의 각 행은 4개 또는 6개의 숫자로 이루어져 있으며 이는 (평균, 표쥰편차)가 2개 또는 3개 연속한 것입니다. ("It usually consists of 2, or 3 clusters with the mean gray-scale colors and their standard deviation (s.t.d).")
+- `k`:
+    - 2개의 clusters를 가진 컬러를 사용할 지 아니면 3개의 clusters를 가진 컬러를 사용할 지를 의미합니다.
+    - 2개의 clusters를 사용한다면 foreground color and background color의 2가지 컬러를 샘플링하는 것이고, 3개의 clusters를 사용한다면 foreground color, background color and style color의 3가지 컬러를 샘플링하는 것입니다.
+- `alpha`:
+    - RGBA color model의 alpha 값을 샘플링하는 데 사용되며, `alpha[0]` 이상 `alpha[1]` 미만의 실수 중 하나를 uniform distribution에서 샘플링합니다. ("synthtiger/components/color/gray_map.py": `alpha = np.random.uniform(self.alpha[0], self.alpha[1])`)
+    - alpha 값이 0일 경우 text border를 제외한 배경이 그대로 비춰 보입니다.
+- `colorize`:
+    - "synthtiger/utils/image_util.py": `to_rgb()`를 적용할 확률
+    - `to_rgb()`를 적용하지 않으면 `rgb = (gry, gray, gray`)를 사용하고, 적용하면 랜덤 샘플링한 RGB 값을 사용합니다.
+## Text Style (`style`)
+- `prob`: text style 적용 확률
+- `class Switch`:
+    - `state`: text style의 존재 여부
+## Generate Data
+- "/images/" 폴더의 하위 폴더에는 최대 10,000 개의 이미지가 저장됩니다. 10,000개가 넘어가면 자동으로 다른 하나의 폴더가 생성됩니다.

@@ -27,6 +27,7 @@ def run(args):
         worker=args.n_workers,
         seed=args.seed,
         retry=True,
+        # retry=False,
         verbose=args.verbose,
     )
 
@@ -36,6 +37,7 @@ def run(args):
     # for idx, (task_idx, data) in enumerate(generator):
     for task_idx, data in generator:
         if args.output is not None and data is not None:
+            print(data["metadata"])
             template.save(root=args.output, data=data, idx=task_idx)
             print(f"""Generated data; '{task_idx}.jpg'""")
 

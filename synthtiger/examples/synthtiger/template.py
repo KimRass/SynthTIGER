@@ -27,7 +27,13 @@ BLEND_MODES = [
 ]
 
 
-class SynthTiger(templates.Template):
+def _to_pil(img):
+    if not isinstance(img, Image.Image):
+        img = Image.fromarray(img)
+    return img
+
+
+class Singleline(templates.Template):
     def __init__(self, config=None):
         if config is None:
             config = {}
@@ -50,6 +56,8 @@ class SynthTiger(templates.Template):
         self.texture = components.Switch(components.BaseTexture(), **config.get("texture", {}))
         self.colormap2 = components.GrayMap(**config.get("colormap2", {}))
         self.colormap3 = components.GrayMap(**config.get("colormap3", {}))
+        # self.colormap2 = components.GrayMap(**config["colormap2"])
+        # self.colormap3 = components.GrayMap(**config["colormap3"])
         self.color = components.Gray(**config.get("color", {}))
         self.shape = components.Switch(
             components.Selector([components.ElasticDistortion(), components.ElasticDistortion()]),
@@ -60,7 +68,7 @@ class SynthTiger(templates.Template):
             **config.get("layout", {}),
         )
         self.style = components.Switch(
-            components.Selector(
+            component=components.Selector(
                 [
                     components.TextBorder(),
                     components.TextShadow(),
@@ -99,6 +107,8 @@ class SynthTiger(templates.Template):
         quality = np.random.randint(self.quality[0], self.quality[1] + 1)
         midground = np.random.rand() < self.midground
         fg_color, fg_style, mg_color, mg_style, bg_color = self._generate_color()
+        # print(fg_color["rgb"], fg_style)
+        # print(fg_style)
 
         fg_image, label, bboxes, glyph_fg_image, glyph_bboxes = self._generate_text(
             color=fg_color, style=fg_style
@@ -114,6 +124,11 @@ class SynthTiger(templates.Template):
             image = _blend_images(src=fg_image, dst=bg_image, visibility_check=self.visibility_check)
             if image is not None:
                 image, fg_image, glyph_fg_image = self._postprocess_images([image, fg_image, glyph_fg_image])
+                # _to_pil(fg_image.astype("uint8")).show()
+                # _to_pil(bg_image.astype("uint8")).show()
+                # print(fg_color["rgb"], fg_color["alpha"])
+                # _to_pil(image.astype("uint8")).show()
+                # _to_pil(image.astype("uint8")).show()
 
                 data = {
                     "image": image,
@@ -123,7 +138,22 @@ class SynthTiger(templates.Template):
                     "bboxes": bboxes,
                     "glyph_mask": glyph_fg_image[..., 3],
                     "glyph_bboxes": glyph_bboxes,
+                    "metadata": dict()
                 }
+
+                data["metadata"]["text_color"] = fg_color["rgb"]
+                if fg_style["meta"]:
+                    if fg_style["meta"]["idx"] == 0:
+                        data["metadata"]["text_border_width"] = fg_style["meta"]["meta"]["size"]
+                        data["metadata"]["text_border_color"] = fg_style["meta"]["meta"]["rgb"]
+                    elif fg_style["meta"]["idx"] == 1:
+                        data["metadata"]["text_shadow_distance"] = fg_style["meta"]["meta"]["distance"]
+                        data["metadata"]["text_shadow_angle"] = fg_style["meta"]["meta"]["angle"]
+                        data["metadata"]["text_shadow_color"] = fg_style["meta"]["meta"]["rgb"]
+                    else:
+                        data["metadata"]["text_extrusion_length"] = fg_style["meta"]["meta"]["length"]
+                        data["metadata"]["text_extrusion_angle"] = fg_style["meta"]["meta"]["angle"]
+                        data["metadata"]["text_extrusion_color"] = fg_style["meta"]["meta"]["rgb"]
                 return data
 
     def init_save(self, root):
@@ -192,6 +222,7 @@ class SynthTiger(templates.Template):
     def _generate_color(self):
         mg_color = self.color.sample()
         fg_style = self.style.sample()
+        # print(fg_style)
         mg_style = self.style.sample()
 
         if fg_style["state"]:
@@ -220,14 +251,14 @@ class SynthTiger(templates.Template):
         text_glyph_layer = text_layer.copy()
 
         transform = self.transform.sample()
-        self.color.apply([text_layer, text_glyph_layer], color)
-        self.texture.apply([text_layer, text_glyph_layer])
-        self.style.apply([text_layer, *char_layers], style)
+        self.color.apply(layers=[text_layer, text_glyph_layer], meta=color)
+        self.texture.apply(layers=[text_layer, text_glyph_layer])
+        self.style.apply(layers=[text_layer, *char_layers], meta=style)
         self.transform.apply(
-            [text_layer, text_glyph_layer, *char_layers, *char_glyph_layers], transform
+            layers=[text_layer, text_glyph_layer, *char_layers, *char_glyph_layers], meta=transform
         )
-        self.fit.apply([text_layer, text_glyph_layer, *char_layers, *char_glyph_layers])
-        self.pad.apply([text_layer])
+        self.fit.apply(layers=[text_layer, text_glyph_layer, *char_layers, *char_glyph_layers])
+        self.pad.apply(layers=[text_layer])
 
         for char_layer in char_layers:
             char_layer.topleft -= text_layer.topleft

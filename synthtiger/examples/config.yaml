@@ -16,7 +16,8 @@ corpus:
   weights: [1, 0]
   args:
     # length augmentable corpus
-    - paths: [resources/corpus/ko_corpus.txt]
+    # - paths: [resources/corpus/ko_corpus.txt]
+    - paths: [/Users/jongbeomkim/Desktop/workspace/scene_text_image_generator/synthtiger/resources/corpus/ko_corpus.txt]
       weights: [1]
       min_length: 1
       max_length: 50
@@ -35,7 +36,7 @@ corpus:
 font:
   paths: [resources/font]
   weights: [1]
-  size: [40, 80]
+  size: [30, 80]
   bold: 0.5
 
 texture:
@@ -48,14 +49,14 @@ texture:
     crop: 1
 
 colormap2:
-  paths: [resources/colormap/iiit5k_gray.txt]
+  paths: [/Users/jongbeomkim/Desktop/workspace/scene_text_image_generator/synthtiger/resources/colormap/iiit5k_gray.txt]
   weights: [1]
   k: 2
   alpha: [1, 1]
   colorize: 1
 
 colormap3:
-  paths: [resources/colormap/iiit5k_gray.txt]
+  paths: [/Users/jongbeomkim/Desktop/workspace/scene_text_image_generator/synthtiger/resources/colormap/iiit5k_gray.txt]
   weights: [1]
   k: 3
   alpha: [1, 1]
@@ -91,20 +92,22 @@ layout:
       upward: 0.5
 
 style:
-  prob: 0.25
+  # prob: 0.25
+  prob: 0.5
   args:
-    weights: [1, 2, 2]
+    # weights: [1, 2, 2]
+    weights: [0, 1, 0]
     args:
       # Text border
-      - size: [1, 12]
+      - size: [1, 6]
         alpha: [1, 1]
         grayscale: 0
-      # text shadow
-      - distance: [1, 6]
+      # Text shadow
+      - distance: [4, 6]
         angle: [0, 360]
         alpha: [0.3, 0.7]
         grayscale: 0
-      # text extrusion
+      # Text extrusion
       - length: [1, 12]
         angle: [0, 360]
         alpha: [1, 1]
