@@ -1,6 +1,7 @@
 import synthtiger
 from pprint import pprint
 import numpy as np
+import pandas as pd
 
 
 config = synthtiger.read_config(
@@ -54,3 +55,22 @@ style = components.Switch(
 style.component
 fg_style = style.sample()
 fg_style
+
+
+angle = 45
+radian = np.radians(angle)
+offsets = np.array([np.cos(radian), -np.sin(radian)])
+offsets
+np.linalg.norm(offsets)
+
+
+df = pd.read_csv("/Users/jongbeomkim/Documents/synthtiger/style.csv")
+df.sort_values(by="image_path", inplace=True)
+df.head()
+
+percents = [[-0.5, 0.5], [-0.5, 0.5]]
+percents = tuple(
+    np.random.uniform(percent[0], percent[1]) for percent in percents
+)
+percents
+np.tile(percents, 2)[: 2]

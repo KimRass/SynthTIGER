@@ -15,7 +15,7 @@ def run(args):
     if args.config is not None:
         config = synthtiger.read_config(args.config)
 
-    pprint(config)
+    # pprint(config)
 
     synthtiger.set_global_random_seed(args.seed)
     template = synthtiger.read_template(path=args.template_path, name=args.template_name, config=config)
@@ -37,7 +37,7 @@ def run(args):
     # for idx, (task_idx, data) in enumerate(generator):
     for task_idx, data in generator:
         if args.output is not None and data is not None:
-            print(data["metadata"])
+            # print(data["metadata"])
             template.save(root=args.output, data=data, idx=task_idx)
             print(f"""Generated data; '{task_idx}.jpg'""")
 
@@ -65,7 +65,7 @@ def parse_args():
     )
     args = parser.parse_args()
 
-    pprint(vars(args))
+    # pprint(vars(args))
     return args
 
 

@@ -1,3 +1,6 @@
+# References
+    # https://blend-modes.readthedocs.io/en/latest/visual_examples.html
+
 """
 SynthTIGER
 Copyright (c) 2021-present NAVER Corp.
@@ -5,25 +8,27 @@ MIT license
 """
 
 import os
+import shutil
 import cv2
 import numpy as np
 from PIL import Image
+import pandas as pd
 
 from synthtiger import components, layers, templates, utils
 
 BLEND_MODES = [
     "normal",
     "multiply",
-    "screen",
-    "overlay",
     "hard_light",
-    "soft_light",
-    "dodge",
     "divide",
-    "addition",
-    "difference",
     "darken_only",
-    "lighten_only",
+    # "screen",
+    # "overlay",
+    # "soft_light",
+    # "dodge",
+    # "addition",
+    # "difference",
+    # "lighten_only",
 ]
 
 
@@ -56,8 +61,6 @@ class Singleline(templates.Template):
         self.texture = components.Switch(components.BaseTexture(), **config.get("texture", {}))
         self.colormap2 = components.GrayMap(**config.get("colormap2", {}))
         self.colormap3 = components.GrayMap(**config.get("colormap3", {}))
-        # self.colormap2 = components.GrayMap(**config["colormap2"])
-        # self.colormap3 = components.GrayMap(**config["colormap3"])
         self.color = components.Gray(**config.get("color", {}))
         self.shape = components.Switch(
             components.Selector([components.ElasticDistortion(), components.ElasticDistortion()]),
@@ -71,7 +74,8 @@ class Singleline(templates.Template):
             component=components.Selector(
                 [
                     components.TextBorder(),
-                    components.TextShadow(),
+                    # components.TextShadow(),
+                    components.TextShadow(rgb=((0, 100), (0, 100), (0, 100))),
                     components.TextExtrusion(),
                 ]
             ),
@@ -107,28 +111,31 @@ class Singleline(templates.Template):
         quality = np.random.randint(self.quality[0], self.quality[1] + 1)
         midground = np.random.rand() < self.midground
         fg_color, fg_style, mg_color, mg_style, bg_color = self._generate_color()
-        # print(fg_color["rgb"], fg_style)
+        # print(fg_color["rgb"])
         # print(fg_style)
 
         fg_image, label, bboxes, glyph_fg_image, glyph_bboxes = self._generate_text(
             color=fg_color, style=fg_style
         )
+        # _to_pil(fg_image.astype("uint8")).show()
         bg_image = self._generate_background(size=fg_image.shape[: 2][:: -1], color=bg_color)
 
         if midground:
             mg_image, _, _, _, _ = self._generate_text(color=mg_color, style=mg_style)
+            # `mg_image`에서 대충 `fg_image`가 차지하는 영역은 텍스트를 지워서 비워둡니다.
+            # _to_pil(mg_image.astype("uint8")).show()
+            # _to_pil(fg_image.astype("uint8")).show()
             mg_image = self._erase_image(image=mg_image, mask=fg_image)
+            # _to_pil(mg_image.astype("uint8")).show()
             bg_image = _blend_images(src=mg_image, dst=bg_image, visibility_check=self.visibility_check)
 
         if bg_image is not None:
             image = _blend_images(src=fg_image, dst=bg_image, visibility_check=self.visibility_check)
             if image is not None:
-                image, fg_image, glyph_fg_image = self._postprocess_images([image, fg_image, glyph_fg_image])
                 # _to_pil(fg_image.astype("uint8")).show()
                 # _to_pil(bg_image.astype("uint8")).show()
-                # print(fg_color["rgb"], fg_color["alpha"])
                 # _to_pil(image.astype("uint8")).show()
-                # _to_pil(image.astype("uint8")).show()
+                image, fg_image, glyph_fg_image = self._postprocess_images([image, fg_image, glyph_fg_image])
 
                 data = {
                     "image": image,
@@ -141,33 +148,51 @@ class Singleline(templates.Template):
                     "metadata": dict()
                 }
 
-                data["metadata"]["text_color"] = fg_color["rgb"]
+                data["metadata"]["text_color"] = f"""rgb{fg_color["rgb"]}"""
+                data["metadata"]["background_color"] = f"""rgb{bg_color["rgb"]}"""
                 if fg_style["meta"]:
                     if fg_style["meta"]["idx"] == 0:
                         data["metadata"]["text_border_width"] = fg_style["meta"]["meta"]["size"]
-                        data["metadata"]["text_border_color"] = fg_style["meta"]["meta"]["rgb"]
+                        data["metadata"]["text_border_color"] = f"""rgb{fg_style["meta"]["meta"]["rgb"]}"""
                     elif fg_style["meta"]["idx"] == 1:
                         data["metadata"]["text_shadow_distance"] = fg_style["meta"]["meta"]["distance"]
-                        data["metadata"]["text_shadow_angle"] = fg_style["meta"]["meta"]["angle"]
-                        data["metadata"]["text_shadow_color"] = fg_style["meta"]["meta"]["rgb"]
+                        data["metadata"]["text_shadow_angle"] = round(fg_style["meta"]["meta"]["angle"])
+                        data["metadata"]["text_shadow_color"] = f"""rgb{fg_style["meta"]["meta"]["rgb"]}"""
                     else:
                         data["metadata"]["text_extrusion_length"] = fg_style["meta"]["meta"]["length"]
-                        data["metadata"]["text_extrusion_angle"] = fg_style["meta"]["meta"]["angle"]
-                        data["metadata"]["text_extrusion_color"] = fg_style["meta"]["meta"]["rgb"]
+                        data["metadata"]["text_extrusion_angle"] = round(fg_style["meta"]["meta"]["angle"])
+                        data["metadata"]["text_extrusion_color"] = f"""rgb{fg_style["meta"]["meta"]["rgb"]}"""
                 return data
 
     def init_save(self, root):
+        shutil.rmtree(root)
         os.makedirs(root, exist_ok=True)
 
         gt_path = os.path.join(root, "gt.txt")
+        self.style_path = os.path.join(root, "style.csv")
         coords_path = os.path.join(root, "coords.txt")
         glyph_coords_path = os.path.join(root, "glyph_coords.txt")
 
-        self.gt_file = open(gt_path, "w", encoding="utf-8")
+        self.gt_file = open(gt_path, mode="w", encoding="utf-8")
         if self.coord_output:
-            self.coords_file = open(coords_path, "w", encoding="utf-8")
+            self.coords_file = open(coords_path, mode="w", encoding="utf-8")
         if self.glyph_coord_output:
-            self.glyph_coords_file = open(glyph_coords_path, "w", encoding="utf-8")
+            self.glyph_coords_file = open(glyph_coords_path, mode="w", encoding="utf-8")
+
+        self.cols = (
+            "image_path",
+            "text_color",
+            "background_color",
+            "text_border_width",
+            "text_border_color",
+            "text_shadow_distance",
+            "text_shadow_angle",
+            "text_shadow_color",
+            "text_extrusion_lenght",
+            "text_extrusion_angle",
+            "text_extrusion_color"
+        )
+        self.df_style = pd.DataFrame(columns=self.cols)
 
     def save(self, root, data, idx):
         image = data["image"]
@@ -189,7 +214,7 @@ class Singleline(templates.Template):
             [",".join(map(str, map(int, coord))) for coord in glyph_coords]
         )
 
-        shard = str(idx // 10000)
+        shard = str(idx // 10000) # "/images/" 폴더의 하위 폴더에는 최대 10,000 개의 이미지가 저장됩니다. 10,000개가 넘어가면 자동으로 다른 하나의 폴더가 생성됩니다.
         image_key = os.path.join("images", shard, f"{idx}.jpg")
         mask_key = os.path.join("masks", shard, f"{idx}.png")
         glyph_mask_key = os.path.join("glyph_masks", shard, f"{idx}.png")
@@ -211,6 +236,24 @@ class Singleline(templates.Template):
             self.coords_file.write(f"{image_key}\t{coords}\n")
         if self.glyph_coord_output:
             self.glyph_coords_file.write(f"{image_key}\t{glyph_coords}\n")
+
+        data["metadata"]["image_path"] = image_key
+        row = pd.DataFrame.from_records([data["metadata"]], columns=self.cols)
+
+        # try:
+        #     df_style = pd.read_csv(self.style_path)
+        # except FileNotFoundError:
+        # df_style = pd.DataFrame(columns=cols)
+
+        # target = df_style.loc[df_style["image_path"] == data["metadata"]["image_path"]]
+        # if target.empty:
+        #     df_style = pd.concat([df_style, row])
+        # else:
+        #     target = row
+        self.df_style = pd.concat([self.df_style, row])
+        self.df_style.drop_duplicates(subset=["image_path"], keep="last", inplace=True)
+
+        self.df_style.to_csv(self.style_path, index=False)
 
     def end_save(self):
         self.gt_file.close()
@@ -236,7 +279,7 @@ class Singleline(templates.Template):
     def _generate_text(self, color, style):
         label = self.corpus.data(self.corpus.sample())
 
-        # for script using diacritic, ligature and RTL
+        # For script using diacritic, ligature and RTL
         chars = utils.split_text(label, reorder=True)
 
         text = "".join(chars)
@@ -274,13 +317,13 @@ class Singleline(templates.Template):
 
     def _generate_background(self, size, color):
         layer = layers.RectLayer(size)
-        self.color.apply([layer], color)
-        self.texture.apply([layer])
+        self.color.apply(layers=[layer], meta=color)
+        self.texture.apply(layers=[layer])
         out = layer.output()
         return out
 
     def _erase_image(self, image, mask):
-        mask = _create_poly_mask(mask, self.foreground_mask_pad)
+        mask = _create_poly_mask(image=mask, pad=self.foreground_mask_pad)
         mask_layer = layers.Layer(mask)
         image_layer = layers.Layer(image)
         image_layer.bbox = mask_layer.bbox
@@ -323,7 +366,8 @@ def _check_if_visible(image, mask):
     visit = visit[1: -1, 1: -1]
     count = np.sum(visit & border)
     total = np.sum(border)
-    return total > 0 and count / total <= 0.01
+    # return total > 0 and count / total <= 0.01
+    return total > 0 and count / total <= 0.05
 
 
 def _blend_images(src, dst, visibility_check=False):
@@ -334,7 +378,8 @@ def _blend_images(src, dst, visibility_check=False):
 
 
 def _create_poly_mask(image, pad=0):
-    height, width = image.shape[:2]
+    ### 대충 `image`가 차지하는 영역을 0으로 마스킹하는 마스크를 생성합니다.
+    height, width = image.shape[: 2]
     alpha = image[..., 3].astype(np.uint8)
     mask = np.zeros((height, width), dtype=np.float32)
 

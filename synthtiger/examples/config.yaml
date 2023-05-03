@@ -1,22 +1,21 @@
-coord_output: true
+coord_output: false
 mask_output: true
-glyph_coord_output: true
+glyph_coord_output: false
 glyph_mask_output: true
 
 vertical: false
-quality: [50, 95]
+quality: [30, 100]
 visibility_check: true
 
-midground: 0.25
+midground: 0.2
 midground_offset:
   percents: [[-0.5, 0.5], [-0.5, 0.5]]
-foreground_mask_pad: 5
+foreground_mask_pad: 10
 
 corpus:
   weights: [1, 0]
   args:
-    # length augmentable corpus
-    # - paths: [resources/corpus/ko_corpus.txt]
+    ### Length augmentable corpus
     - paths: [/Users/jongbeomkim/Desktop/workspace/scene_text_image_generator/synthtiger/resources/corpus/ko_corpus.txt]
       weights: [1]
       min_length: 1
@@ -24,7 +23,7 @@ corpus:
       textcase: [lower, upper, capitalize]
       augmentation: 0.1
       augmentation_length: [1, 25]
-    # char augmentable corpus
+    ### Character augmentable corpus
     - paths: []
       weights: []
       min_length: 1
@@ -36,7 +35,7 @@ corpus:
 font:
   paths: [resources/font]
   weights: [1]
-  size: [30, 80]
+  size: [30, 100]
   bold: 0.5
 
 texture:
@@ -92,10 +91,9 @@ layout:
       upward: 0.5
 
 style:
-  # prob: 0.25
-  prob: 0.5
+  prob: 0
   args:
-    # weights: [1, 2, 2]
+    # weights: [2, 1, 1]
     weights: [0, 1, 0]
     args:
       # Text border
@@ -103,7 +101,7 @@ style:
         alpha: [1, 1]
         grayscale: 0
       # Text shadow
-      - distance: [4, 6]
+      - distance: [4, 8]
         angle: [0, 360]
         alpha: [0.3, 0.7]
         grayscale: 0
@@ -114,7 +112,8 @@ style:
         grayscale: 0
 
 transform:
-  prob: 1
+  # prob: 1
+  prob: 0
   args:
     weights: [1, 1, 1, 1, 1, 1, 2]
     args:
@@ -147,25 +146,29 @@ transform:
 pad:
   prob: 1
   args:
-    pxs: [[0, 10], [0, 10], [0, 10], [0, 10]]
+    pxs: [[0, 20], [0, 20], [0, 20], [0, 20]]
 
 ### (e)
 postprocess:
   args:
     # Gaussian noise
-    - prob: 1
+    # - prob: 1
+    - prob: 0
       args:
         scale: [4, 8]
         per_channel: 0
     # Gaussian blur
-    - prob: 0.9
+    # - prob: 0.9
+    - prob: 0
       args:
         sigma: [0, 2]
     # Resize
-    - prob: 0.1
+    # - prob: 0.1
+    - prob: 0
       args:
         size: [0.4, 0.4]
     # Median blur
-    - prob: 1
+    # - prob: 1
+    - prob: 0
       args:
         k: [1, 1]
