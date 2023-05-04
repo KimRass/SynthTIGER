@@ -74,3 +74,10 @@ percents = tuple(
 )
 percents
 np.tile(percents, 2)[: 2]
+
+
+tm = pd.read_excel("/Users/jongbeomkim/Downloads/place_tm_20230504_023821.xlsx")
+tm = tm[tm["src_content"].notna()]
+tm["src_leng"] = tm["src_content"].str.len().astype("int")
+tm.head()
+set(tm[(tm["src_code"] == "Korean") & (tm["src_leng"] == 1)]["src_content"])

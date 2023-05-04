@@ -41,7 +41,7 @@ font:
 texture:
   prob: 0.5
   args:
-    paths: [resources/image]
+    paths: [/Users/jongbeomkim/Documents/datasets/SynthText/bg_data/bg_img]
     weights: [1]
     alpha: [0, 1]
     grayscale: 0
@@ -91,7 +91,7 @@ layout:
       upward: 0.5
 
 style:
-  prob: 0
+  prob: 0.5
   args:
     # weights: [2, 1, 1]
     weights: [0, 1, 0]
